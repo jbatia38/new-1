@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Deploy a single EC2 instance with a security group
+
+Parameters:
+  ImageId:
+    Type: String
+  InstanceType:
+    Type: String
+  GroupDescription:
+    Type: String
+  EmailToVerify:
+    Type: String
+  BucketName:
+    Type: String
+  VersioningStatus:
+    Type: String
+  KmskeyArn:
+    Type: String
+
+  EC2Name:
+    Type: String
+
+
+Resources:
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref ImageId
+      InstanceType: !Ref InstanceType
+      SecurityGroupIds:
+        - !Ref MySecurityGroup
+      Tags:
+        - Key: "Name"
+          Value: !Ref EC2Name
+        - Key: "Department"
+          Value: "Security-Team"
+
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Ref GroupDescription
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 80
+          ToPort: 80
+          CidrIp: "0.0.0.0/0"
+
+  CloudWork:
+    Type: AWS::SES::EmailIdentity
+    Properties:
+      EmailIdentity: !Ref EmailToVerify
+
+  MyS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      VersioningConfiguration:
+        Status: !Ref VersioningStatus
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              KMSMasterKeyID: !Ref KmskeyArn
+              SSEAlgorithm: "aws:kms"
+
+
+
+  #   Resources:
+  # MyIAMUser:
+  #   Type: AWS::IAM::User
+  #   Properties:
+  #     UserName: "Management-user"
+
+  # MyIAMGroup:
+  #   Type: AWS::IAM::Group
+  #   Properties:
+  #     GroupName: "Management-Group"
+
+  # AddUserToGroup:
+  #   Type: AWS::IAM::UserToGroupAddition
+  #   Properties:
+  #     GroupName: !Ref MyIAMGroup
+  #     Users: 
+  #       - !Ref MyIAMUser
+  # MyIAMPolicy:
+  #   Type: AWS::IAM::Policy
+  #   Properties:
+  #     Groups: 
+  #      - !Ref Management-Group
+  #    PolicyDocument: Json
+  #    PolicyName: "CustomerManage-managmentPolicy"

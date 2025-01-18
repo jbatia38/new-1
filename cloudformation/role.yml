@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Reusable Template to create an IAM role with S3 full access different environments or accounts"
+
+Parameters:
+  TrustEffectStatus:
+    Type: String
+    AllowedValues: ["Allow", "Deny"]
+    Description: "Effect for the trust relationship"
+  TrustServiceType:
+    Type: String
+    Description: "Service type to trust (e.g., s3.amazonaws.com)"
+  PolicyEffect:
+    Type: String
+    AllowedValues: ["Allow", "Deny"]
+    Description: "Effect for the policy statement"
+  PolicyName:
+    Type: String
+    Description: "Name of the inline policy"
+  PolicyAction:
+    Type: CommaDelimitedList
+    Description: "Actions for the policy"
+  ResourceType:
+    Type: String
+    Description: "Resource ARN for the policy"
+  KeyTag:
+    Type: String
+    Description: "Tag key for the IAM role"
+  KeyTagValue:
+    Type: String
+    Description: "Tag value for the IAM role"
+
+Resources:
+  IAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: !Ref TrustEffectStatus
+            Principal:
+              Service: !Ref TrustServiceType
+            Action:
+              - "sts:AssumeRole"
+      Description: "IAM Role with specified permissions and tags"
+      Policies:
+        - PolicyName: !Ref PolicyName
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: !Ref PolicyEffect
+                Action: !Ref PolicyAction
+                Resource: !Ref ResourceType
+      Tags:
+        - Key: !Ref KeyTag
+          Value: !Ref KeyTagValue
