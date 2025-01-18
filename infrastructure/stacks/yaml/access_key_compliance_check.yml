@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create a Lambda function with Python code, an execution role, and a CloudWatch Events rule to trigger it daily.
+
+Parameters:
+  LambdaFunctionName:
+    Type: String
+    Description: Name of the Lambda function
+
+  PythonCode:
+    Type: String
+    Description: The Python code for the Lambda function
+
+Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: LambdaExecutionRoleComplianceCheck
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaAccessPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - organizations:ListAccounts
+                  - iam:ListUsers
+                  - iam:ListAccessKeys
+                  - iam:ListUserTags
+                  - ses:SendEmail
+                  - ses:SendRawEmail
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - sts:AssumeRole
+                Resource: "arn:aws:iam::*:role/AccessKeyComplianceCheck" # Specify the roles this Lambda can assume
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref LambdaFunctionName
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: !Ref PythonCode # Reference the Python code parameter
+      Runtime: python3.12 # Set runtime to Python 3.12
+      MemorySize: 128
+      Timeout: 900
+
+  CloudWatchRule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: cron(0 13 * * ? *) # Triggers every day at 1 PM UTC (7 AM CT)
+      Targets:
+        - Arn: !GetAtt LambdaFunction.Arn
+          Id: TargetFunctionV1
+
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt CloudWatchRule.Arn

@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create an IAM Role in all accounts that trusts the Lambda execution role from the centralized account and allows sending emails using SES.
+
+Parameters:
+  CentralizedAccountId:
+    Type: String
+    Description: The AWS account ID of the centralized account
+
+  RoleName:
+    Type: String
+    Default: AccessKeyComplianceCheck
+    Description: Name of the IAM role to create
+
+Resources:
+  AccessKeyComplianceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref RoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub "arn:aws:iam::${CentralizedAccountId}:role/LambdaExecutionRoleComplianceCheck"
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: AccessKeyCompliancePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iam:ListUsers
+                  - iam:ListAccessKeys
+                  - iam:ListUserTags
+                  - ses:SendRawEmail
+                  - ses:SendEmail
+                Resource: "*"
+      Tags:
+        - Key: owner
+          Value: obello5050@gmail.com
